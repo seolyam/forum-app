@@ -5,6 +5,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { Clock, Eye, MessageSquare } from "lucide-react";
+import { TimeAgo } from "@/components/time-ago";
+import { CommentForm } from "@/components/comment-form";
+import { CommentList } from "@/components/comment-list";
+import { getCommentsForPost } from "@/lib/supabase-queries";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -39,7 +43,14 @@ export default async function DiscussionPage({ params }: PageProps) {
     notFound();
   }
 
-  const timeAgo = new Date(post.created_at).toLocaleDateString();
+  // Get comments for this post
+  const comments = await getCommentsForPost(post.id);
+
+  // Increment view count
+  await supabase
+    .from("posts")
+    .update({ view_count: (post.view_count || 0) + 1 })
+    .eq("id", post.id);
 
   return (
     <div className="min-h-screen bg-background">
@@ -71,7 +82,7 @@ export default async function DiscussionPage({ params }: PageProps) {
               <span className="text-xs text-muted-foreground">•</span>
               <div className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                <span className="text-xs text-muted-foreground">{timeAgo}</span>
+                <TimeAgo date={post.created_at} />
               </div>
             </div>
 
@@ -80,33 +91,35 @@ export default async function DiscussionPage({ params }: PageProps) {
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Eye className="h-3 w-3" />
-                <span>{post.view_count || 0} views</span>
+                <span>{(post.view_count || 0) + 1} views</span>
               </div>
               <div className="flex items-center gap-1">
                 <MessageSquare className="h-3 w-3" />
-                <span>0 comments</span>
+                <span>{comments.length} comments</span>
               </div>
             </div>
           </CardHeader>
 
           <CardContent>
             <div className="prose max-w-none">
-              <p className="whitespace-pre-wrap">{post.content}</p>
+              <p className="whitespace-pre-wrap text-foreground">
+                {post.content}
+              </p>
             </div>
           </CardContent>
         </Card>
 
-        <div className="mt-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Comments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-center py-8">
-                No comments yet. Be the first to comment!
-              </p>
-            </CardContent>
-          </Card>
+        {/* Comments Section */}
+        <div className="mt-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">
+              Comments ({comments.length})
+            </h2>
+          </div>
+
+          <CommentForm postId={post.id} />
+
+          <CommentList postId={post.id} initialComments={comments} />
         </div>
       </main>
     </div>
