@@ -3,7 +3,7 @@ import { DiscussionCard } from "@/components/discussion-card";
 import { TopicSidebar } from "@/components/topic-sidebar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus } from "lucide-react";
+import { Plus, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { getPostsFromSupabase } from "@/lib/supabase-queries";
 import type { PostWithRelations } from "@/lib/types";
@@ -21,12 +21,14 @@ export default async function HomePage() {
           <div className="lg:col-span-3">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-bold">Latest Discussions</h1>
-                <p className="text-muted-foreground">
-                  Join the conversation and share your experiences
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  Latest Discussions
+                </h1>
+                <p className="text-muted-foreground mt-1">
+                  Ask questions, share knowledge, and connect with the community
                 </p>
               </div>
-              <Button asChild>
+              <Button asChild size="lg">
                 <Link href="/ask">
                   <Plus className="h-4 w-4 mr-2" />
                   Ask Question
@@ -36,7 +38,7 @@ export default async function HomePage() {
 
             {/* Filter Tabs */}
             <Tabs defaultValue="latest" className="mb-6">
-              <TabsList>
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="latest">Latest</TabsTrigger>
                 <TabsTrigger value="trending">Trending</TabsTrigger>
                 <TabsTrigger value="unanswered">Unanswered</TabsTrigger>
@@ -70,11 +72,15 @@ export default async function HomePage() {
                     />
                   ))
                 ) : (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground mb-4">
-                      No discussions yet. Be the first to start one!
+                  <div className="text-center py-16">
+                    <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      No discussions yet
+                    </h3>
+                    <p className="text-muted-foreground mb-6">
+                      Be the first to start a conversation!
                     </p>
-                    <Button asChild>
+                    <Button asChild size="lg">
                       <Link href="/ask">Ask the First Question</Link>
                     </Button>
                   </div>
@@ -82,39 +88,50 @@ export default async function HomePage() {
               </TabsContent>
 
               <TabsContent value="trending" className="space-y-4 mt-6">
-                {posts
-                  .sort(
-                    (a: PostWithRelations, b: PostWithRelations) =>
-                      (b.view_count || 0) - (a.view_count || 0)
-                  )
-                  .map((post: PostWithRelations) => (
-                    <DiscussionCard
-                      key={post.id}
-                      id={post.slug}
-                      title={post.title}
-                      content={post.content}
-                      author={{
-                        username: post.profiles?.username || "Anonymous",
-                        displayName:
-                          post.profiles?.display_name || "Anonymous User",
-                        avatarUrl: post.profiles?.avatar_url || undefined,
-                      }}
-                      category={{
-                        name: post.categories?.name || "General",
-                        slug: post.categories?.slug || "general",
-                      }}
-                      stats={{
-                        upvotes: 0,
-                        comments: 0,
-                        views: post.view_count || 0,
-                      }}
-                      createdAt={post.created_at}
-                    />
-                  ))}
+                {posts.length > 0 ? (
+                  posts
+                    .sort(
+                      (a: PostWithRelations, b: PostWithRelations) =>
+                        (b.view_count || 0) - (a.view_count || 0)
+                    )
+                    .map((post: PostWithRelations) => (
+                      <DiscussionCard
+                        key={post.id}
+                        id={post.slug}
+                        title={post.title}
+                        content={post.content}
+                        author={{
+                          username: post.profiles?.username || "Anonymous",
+                          displayName:
+                            post.profiles?.display_name || "Anonymous User",
+                          avatarUrl: post.profiles?.avatar_url || undefined,
+                        }}
+                        category={{
+                          name: post.categories?.name || "General",
+                          slug: post.categories?.slug || "general",
+                        }}
+                        stats={{
+                          upvotes: 0,
+                          comments: 0,
+                          views: post.view_count || 0,
+                        }}
+                        createdAt={post.created_at}
+                      />
+                    ))
+                ) : (
+                  <div className="text-center py-16">
+                    <p className="text-muted-foreground mb-4">
+                      No trending discussions yet!
+                    </p>
+                    <Button asChild>
+                      <Link href="/ask">Start a Discussion</Link>
+                    </Button>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="unanswered" className="space-y-4 mt-6">
-                <div className="text-center py-12">
+                <div className="text-center py-16">
                   <p className="text-muted-foreground mb-4">
                     No unanswered questions yet!
                   </p>
@@ -125,11 +142,11 @@ export default async function HomePage() {
               </TabsContent>
 
               <TabsContent value="following" className="space-y-4 mt-6">
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">
+                <div className="text-center py-16">
+                  <p className="text-muted-foreground mb-4">
                     Sign in to see discussions from people you follow
                   </p>
-                  <Button className="mt-4" asChild>
+                  <Button asChild>
                     <Link href="/auth/login">Sign In</Link>
                   </Button>
                 </div>
