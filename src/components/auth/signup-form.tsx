@@ -27,6 +27,10 @@ export function SignupForm() {
     setIsLoading(true);
 
     try {
+      // Get the current origin for the redirect URL
+      const origin = window.location.origin;
+      const redirectTo = `${origin}/auth/callback`;
+
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -35,6 +39,7 @@ export function SignupForm() {
             username,
             display_name: displayName,
           },
+          emailRedirectTo: redirectTo,
         },
       });
 
