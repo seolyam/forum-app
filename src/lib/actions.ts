@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ensureUserProfile } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 function generateSlug(title: string): string {
   return title
@@ -75,5 +76,65 @@ export async function createPostAction(formData: FormData) {
 
     console.error("Error creating post:", error);
     return { success: false, error: "Failed to create post" };
+  }
+}
+
+export async function createCommentAction(formData: FormData) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "You must be logged in to comment" };
+  }
+
+  // Ensure user profile exists
+  const profile = await ensureUserProfile(user.id, user.email);
+  if (!profile) {
+    return { success: false, error: "Failed to create user profile" };
+  }
+
+  const content = formData.get("content") as string;
+  const postId = formData.get("postId") as string;
+  const parentId = formData.get("parentId") as string;
+
+  if (!content?.trim()) {
+    return { success: false, error: "Comment content is required" };
+  }
+
+  if (!postId) {
+    return { success: false, error: "Post ID is required" };
+  }
+
+  try {
+    const { data: comment, error: insertError } = await supabase
+      .from("comments")
+      .insert({
+        content: content.trim(),
+        author_id: user.id,
+        post_id: postId,
+        parent_id: parentId || null,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Comment creation error:", insertError);
+      return {
+        success: false,
+        error: "Failed to create comment: " + insertError.message,
+      };
+    }
+
+    // Revalidate the discussion page to show new comment
+    revalidatePath(`/discussion/[slug]`, "page");
+
+    return { success: true, comment };
+  } catch (error) {
+    console.error("Error creating comment:", error);
+    return { success: false, error: "Failed to create comment" };
   }
 }
