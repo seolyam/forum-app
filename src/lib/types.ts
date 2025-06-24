@@ -26,6 +26,9 @@ export interface Post {
   is_pinned: boolean;
   is_locked: boolean;
   view_count: number;
+  upvotes: number;
+  downvotes: number;
+  comment_count: number;
   created_at: string;
   updated_at: string;
   profiles?: Profile | null;
@@ -35,6 +38,7 @@ export interface Post {
 export interface PostWithRelations extends Post {
   profiles: Profile | null;
   categories: Category | null;
+  user_vote?: number | null; // Current user's vote (-1, 0, 1)
 }
 
 export interface Comment {
@@ -42,6 +46,8 @@ export interface Comment {
   content: string;
   created_at: string;
   parent_id: string | null;
+  upvotes: number;
+  downvotes: number;
   author: {
     id: string;
     username: string | null;
@@ -49,18 +55,15 @@ export interface Comment {
     avatar_url: string | null;
   } | null;
   replies?: Comment[];
+  user_vote?: number | null; // Current user's vote (-1, 0, 1)
 }
 
-// This is what Supabase actually returns - profiles is a single object, not an array
-export interface SupabaseCommentResponse {
+export interface Vote {
   id: string;
-  content: string;
+  post_id?: string;
+  comment_id?: string;
+  user_id: string;
+  vote_type: number; // -1 or 1
   created_at: string;
-  parent_id: string | null;
-  profiles: {
-    id: string;
-    username: string | null;
-    display_name: string | null;
-    avatar_url: string | null;
-  } | null;
+  updated_at: string;
 }

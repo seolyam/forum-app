@@ -6,10 +6,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { getPostsFromSupabase } from "@/lib/supabase-queries";
+import { createClient } from "@/lib/supabase/server";
 import type { PostWithRelations } from "@/lib/types";
 
 export default async function HomePage() {
-  const posts = await getPostsFromSupabase();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const posts = await getPostsFromSupabase(user?.id);
 
   return (
     <div className="min-h-screen bg-background">
@@ -64,11 +70,13 @@ export default async function HomePage() {
                         slug: post.categories?.slug || "general",
                       }}
                       stats={{
-                        upvotes: 0,
-                        comments: 0,
+                        upvotes: post.upvotes || 0,
+                        downvotes: post.downvotes || 0,
+                        comments: post.comment_count || 0,
                         views: post.view_count || 0,
                       }}
                       createdAt={post.created_at}
+                      userVote={post.user_vote}
                     />
                   ))
                 ) : (
@@ -92,7 +100,9 @@ export default async function HomePage() {
                   posts
                     .sort(
                       (a: PostWithRelations, b: PostWithRelations) =>
-                        (b.view_count || 0) - (a.view_count || 0)
+                        (b.upvotes || 0) -
+                        (b.downvotes || 0) -
+                        ((a.upvotes || 0) - (a.downvotes || 0))
                     )
                     .map((post: PostWithRelations) => (
                       <DiscussionCard
@@ -111,11 +121,13 @@ export default async function HomePage() {
                           slug: post.categories?.slug || "general",
                         }}
                         stats={{
-                          upvotes: 0,
-                          comments: 0,
+                          upvotes: post.upvotes || 0,
+                          downvotes: post.downvotes || 0,
+                          comments: post.comment_count || 0,
                           views: post.view_count || 0,
                         }}
                         createdAt={post.created_at}
+                        userVote={post.user_vote}
                       />
                     ))
                 ) : (
@@ -131,14 +143,48 @@ export default async function HomePage() {
               </TabsContent>
 
               <TabsContent value="unanswered" className="space-y-4 mt-6">
-                <div className="text-center py-16">
-                  <p className="text-muted-foreground mb-4">
-                    No unanswered questions yet!
-                  </p>
-                  <Button asChild>
-                    <Link href="/ask">Ask a Question</Link>
-                  </Button>
-                </div>
+                {posts.length > 0 ? (
+                  posts
+                    .filter(
+                      (post: PostWithRelations) =>
+                        (post.comment_count || 0) === 0
+                    )
+                    .map((post: PostWithRelations) => (
+                      <DiscussionCard
+                        key={post.id}
+                        id={post.slug}
+                        title={post.title}
+                        content={post.content}
+                        author={{
+                          username: post.profiles?.username || "Anonymous",
+                          displayName:
+                            post.profiles?.display_name || "Anonymous User",
+                          avatarUrl: post.profiles?.avatar_url || undefined,
+                        }}
+                        category={{
+                          name: post.categories?.name || "General",
+                          slug: post.categories?.slug || "general",
+                        }}
+                        stats={{
+                          upvotes: post.upvotes || 0,
+                          downvotes: post.downvotes || 0,
+                          comments: post.comment_count || 0,
+                          views: post.view_count || 0,
+                        }}
+                        createdAt={post.created_at}
+                        userVote={post.user_vote}
+                      />
+                    ))
+                ) : (
+                  <div className="text-center py-16">
+                    <p className="text-muted-foreground mb-4">
+                      No unanswered questions yet!
+                    </p>
+                    <Button asChild>
+                      <Link href="/ask">Ask a Question</Link>
+                    </Button>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="following" className="space-y-4 mt-6">
