@@ -1,11 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import type { PostWithRelations, Category, Comment } from "@/lib/types";
 
-export async function getPostsFromSupabase(): Promise<PostWithRelations[]> {
+export async function getPostsFromSupabase(
+  userId?: string
+): Promise<PostWithRelations[]> {
   const supabase = await createClient();
 
   try {
-    const { data: posts, error } = await supabase
+    const query = supabase
       .from("posts")
       .select(
         `
@@ -26,12 +28,39 @@ export async function getPostsFromSupabase(): Promise<PostWithRelations[]> {
       .order("created_at", { ascending: false })
       .limit(20);
 
+    const { data: posts, error } = await query;
+
     if (error) {
       console.error("Supabase query error:", error);
       return [];
     }
 
-    return (posts as PostWithRelations[]) || [];
+    if (!posts) return [];
+
+    // Get user votes if userId is provided
+    let userVotes: { [key: string]: number } = {};
+    if (userId) {
+      const { data: votes } = await supabase
+        .from("post_votes")
+        .select("post_id, vote_type")
+        .eq("user_id", userId)
+        .in(
+          "post_id",
+          posts.map((p) => p.id)
+        );
+
+      if (votes) {
+        userVotes = votes.reduce((acc, vote) => {
+          acc[vote.post_id] = vote.vote_type;
+          return acc;
+        }, {} as { [key: string]: number });
+      }
+    }
+
+    return posts.map((post) => ({
+      ...post,
+      user_vote: userVotes[post.id] || null,
+    })) as PostWithRelations[];
   } catch (error) {
     console.error("Database connection error:", error);
     return [];
@@ -59,7 +88,10 @@ export async function getCategoriesFromSupabase(): Promise<Category[]> {
   }
 }
 
-export async function getCommentsForPost(postId: string): Promise<Comment[]> {
+export async function getCommentsForPost(
+  postId: string,
+  userId?: string
+): Promise<Comment[]> {
   const supabase = await createClient();
 
   try {
@@ -72,6 +104,8 @@ export async function getCommentsForPost(postId: string): Promise<Comment[]> {
         content,
         created_at,
         parent_id,
+        upvotes,
+        downvotes,
         profiles:author_id (
           id,
           username,
@@ -91,12 +125,34 @@ export async function getCommentsForPost(postId: string): Promise<Comment[]> {
 
     if (!comments) return [];
 
+    // Get user votes for comments if userId is provided
+    let userVotes: { [key: string]: number } = {};
+    if (userId) {
+      const { data: votes } = await supabase
+        .from("comment_votes")
+        .select("comment_id, vote_type")
+        .eq("user_id", userId)
+        .in(
+          "comment_id",
+          comments.map((c) => c.id)
+        );
+
+      if (votes) {
+        userVotes = votes.reduce((acc, vote) => {
+          acc[vote.comment_id] = vote.vote_type;
+          return acc;
+        }, {} as { [key: string]: number });
+      }
+    }
+
     // Use 'unknown' first to safely cast the Supabase response
     const typedComments = comments as unknown as {
       id: string;
       content: string;
       created_at: string;
       parent_id: string | null;
+      upvotes: number;
+      downvotes: number;
       profiles: {
         id: string;
         username: string | null;
@@ -116,6 +172,8 @@ export async function getCommentsForPost(postId: string): Promise<Comment[]> {
             content,
             created_at,
             parent_id,
+            upvotes,
+            downvotes,
             profiles:author_id (
               id,
               username,
@@ -133,6 +191,8 @@ export async function getCommentsForPost(postId: string): Promise<Comment[]> {
             content: string;
             created_at: string;
             parent_id: string | null;
+            upvotes: number;
+            downvotes: number;
             profiles: {
               id: string;
               username: string | null;
@@ -141,18 +201,44 @@ export async function getCommentsForPost(postId: string): Promise<Comment[]> {
             } | null;
           }[]) || [];
 
+        // Get user votes for replies
+        let replyVotes: { [key: string]: number } = {};
+        if (userId && typedReplies.length > 0) {
+          const { data: votes } = await supabase
+            .from("comment_votes")
+            .select("comment_id, vote_type")
+            .eq("user_id", userId)
+            .in(
+              "comment_id",
+              typedReplies.map((r) => r.id)
+            );
+
+          if (votes) {
+            replyVotes = votes.reduce((acc, vote) => {
+              acc[vote.comment_id] = vote.vote_type;
+              return acc;
+            }, {} as { [key: string]: number });
+          }
+        }
+
         return {
           id: comment.id,
           content: comment.content,
           created_at: comment.created_at,
           parent_id: comment.parent_id,
+          upvotes: comment.upvotes,
+          downvotes: comment.downvotes,
           author: comment.profiles,
+          user_vote: userVotes[comment.id] || null,
           replies: typedReplies.map((reply) => ({
             id: reply.id,
             content: reply.content,
             created_at: reply.created_at,
             parent_id: reply.parent_id,
+            upvotes: reply.upvotes,
+            downvotes: reply.downvotes,
             author: reply.profiles,
+            user_vote: replyVotes[reply.id] || null,
           })),
         } as Comment;
       })

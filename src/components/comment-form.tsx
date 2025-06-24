@@ -23,8 +23,8 @@ export function CommentForm({
   postId,
   parentId,
   onSuccess,
-  placeholder = "Write your comment...",
-  buttonText = "Post Comment",
+  placeholder = "Join the conversation...",
+  buttonText = "Comment",
 }: CommentFormProps) {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,9 +57,8 @@ export function CommentForm({
       const result = await createCommentAction(formData);
 
       if (result.success) {
-        success("Comment posted successfully!");
+        success("Comment posted!");
         setContent("");
-        // Wait a moment for the database to update, then refresh
         setTimeout(() => {
           onSuccess?.();
         }, 500);
@@ -75,13 +74,16 @@ export function CommentForm({
 
   if (!user) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-muted-foreground text-center">
-            <a href="/auth/login" className="text-primary hover:underline">
+      <Card className="border-dashed">
+        <CardContent className="py-4 text-center">
+          <p className="text-muted-foreground text-sm">
+            <a
+              href="/auth/login"
+              className="text-primary hover:underline font-medium"
+            >
               Sign in
             </a>{" "}
-            to join the discussion
+            to join the conversation
           </p>
         </CardContent>
       </Card>
@@ -90,22 +92,24 @@ export function CommentForm({
 
   return (
     <Card>
-      <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <CardContent className="py-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <Textarea
             placeholder={placeholder}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            rows={4}
+            rows={2}
             maxLength={2000}
+            className="resize-none border-0 bg-muted/50 focus-visible:ring-1"
           />
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {content.length}/2000 characters
-            </p>
-            <Button type="submit" disabled={isSubmitting || !content.trim()}>
+          <div className="flex items-center justify-end">
+            <Button
+              type="submit"
+              disabled={isSubmitting || !content.trim()}
+              size="sm"
+            >
               {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
               )}
               {isSubmitting ? "Posting..." : buttonText}
             </Button>

@@ -1,12 +1,17 @@
 "use client";
 
+import type React from "react";
+
 import { Card, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquare, ArrowUp, ArrowDown, Eye, Clock } from "lucide-react";
-import Link from "next/link";
+import { MessageSquare, ArrowUp, ArrowDown, Eye, Share } from "lucide-react";
 import { useEffect, useState } from "react";
+import { voteOnPost } from "@/lib/voting-actions";
+import { useAuth } from "@/components/auth-provider";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 interface DiscussionCardProps {
   id: string;
@@ -23,12 +28,12 @@ interface DiscussionCardProps {
   };
   stats: {
     upvotes: number;
+    downvotes: number;
     comments: number;
     views: number;
   };
   createdAt: string;
-  isUpvoted?: boolean;
-  isDownvoted?: boolean;
+  userVote?: number | null;
 }
 
 export function DiscussionCard({
@@ -39,15 +44,19 @@ export function DiscussionCard({
   category,
   stats,
   createdAt,
-  isUpvoted = false,
-  isDownvoted = false,
+  userVote = null,
 }: DiscussionCardProps) {
   const [timeAgo, setTimeAgo] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [currentVote, setCurrentVote] = useState(userVote);
+  const [voteStats, setVoteStats] = useState(stats);
+  const [isVoting, setIsVoting] = useState(false);
+  const { user } = useAuth();
+  const { error } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
-    // Format date consistently on client side only
     const date = new Date(createdAt);
     const now = new Date();
     const diffInHours = Math.floor(
@@ -55,88 +64,81 @@ export function DiscussionCard({
     );
 
     if (diffInHours < 1) {
-      setTimeAgo("just now");
+      setTimeAgo("now");
     } else if (diffInHours < 24) {
-      setTimeAgo(`${diffInHours}h ago`);
+      setTimeAgo(`${diffInHours}h`);
     } else if (diffInHours < 24 * 7) {
       const days = Math.floor(diffInHours / 24);
-      setTimeAgo(`${days}d ago`);
+      setTimeAgo(`${days}d`);
     } else {
       setTimeAgo(date.toLocaleDateString());
     }
   }, [createdAt]);
 
-  // Show placeholder during hydration
+  const handleVote = async (e: React.MouseEvent, voteType: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      error("You must be logged in to vote");
+      return;
+    }
+
+    if (isVoting) return;
+
+    setIsVoting(true);
+
+    try {
+      const result = await voteOnPost(id, voteType);
+
+      if (result.success) {
+        const newVote = currentVote === voteType ? null : voteType;
+        const oldVote = currentVote;
+
+        setCurrentVote(newVote);
+
+        let newUpvotes = voteStats.upvotes;
+        let newDownvotes = voteStats.downvotes;
+
+        if (oldVote === 1) newUpvotes--;
+        if (oldVote === -1) newDownvotes--;
+        if (newVote === 1) newUpvotes++;
+        if (newVote === -1) newDownvotes++;
+
+        setVoteStats({
+          ...voteStats,
+          upvotes: newUpvotes,
+          downvotes: newDownvotes,
+        });
+      } else {
+        error(result.error || "Failed to vote");
+      }
+    } catch {
+      error("Failed to vote");
+    } finally {
+      setIsVoting(false);
+    }
+  };
+
+  const handleCardClick = () => {
+    router.push(`/discussion/${id}`);
+  };
+
+  const netVotes = voteStats.upvotes - voteStats.downvotes;
+  const formatCount = (count: number) => {
+    if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}k`;
+    }
+    return count.toString();
+  };
+
   if (!mounted) {
     return (
-      <Card className="hover:shadow-md transition-shadow">
-        <CardHeader className="pb-3">
-          <div className="flex items-start gap-3">
-            {/* Vote buttons */}
-            <div className="flex flex-col items-center gap-1 pt-1">
-              <Button
-                variant={isUpvoted ? "default" : "ghost"}
-                size="sm"
-                className="h-8 w-8 p-0"
-              >
-                <ArrowUp className="h-4 w-4" />
-              </Button>
-              <span className="text-sm font-medium">{stats.upvotes}</span>
-              <Button
-                variant={isDownvoted ? "destructive" : "ghost"}
-                size="sm"
-                className="h-8 w-8 p-0"
-              >
-                <ArrowDown className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Main content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <Badge variant="secondary">{category.name}</Badge>
-                <span className="text-xs text-muted-foreground">•</span>
-                <div className="flex items-center gap-1">
-                  <Avatar className="h-4 w-4">
-                    <AvatarImage src={author.avatarUrl || "/placeholder.svg"} />
-                    <AvatarFallback className="text-xs">
-                      {author.username.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs text-muted-foreground">
-                    {author.displayName || author.username}
-                  </span>
-                </div>
-                <span className="text-xs text-muted-foreground">•</span>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  <span className="text-xs text-muted-foreground">
-                    loading...
-                  </span>
-                </div>
-              </div>
-
-              <Link href={`/discussion/${id}`} className="block group">
-                <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors mb-2">
-                  {title}
-                </h3>
-                <p className="text-muted-foreground text-sm line-clamp-2 mb-3">
-                  {content}
-                </p>
-              </Link>
-
-              {/* Stats */}
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <MessageSquare className="h-3 w-3" />
-                  <span>{stats.comments} comments</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Eye className="h-3 w-3" />
-                  <span>{stats.views} views</span>
-                </div>
-              </div>
-            </div>
+      <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        <CardHeader className="pb-4">
+          <div className="animate-pulse">
+            <div className="h-4 bg-muted rounded w-3/4 mb-2" />
+            <div className="h-3 bg-muted rounded w-1/2" />
           </div>
         </CardHeader>
       </Card>
@@ -144,71 +146,100 @@ export function DiscussionCard({
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex items-start gap-3">
-          {/* Vote buttons */}
-          <div className="flex flex-col items-center gap-1 pt-1">
-            <Button
-              variant={isUpvoted ? "default" : "ghost"}
-              size="sm"
-              className="h-8 w-8 p-0"
-            >
-              <ArrowUp className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-medium">{stats.upvotes}</span>
-            <Button
-              variant={isDownvoted ? "destructive" : "ghost"}
-              size="sm"
-              className="h-8 w-8 p-0"
-            >
-              <ArrowDown className="h-4 w-4" />
-            </Button>
+    <Card
+      className="hover:shadow-md transition-shadow cursor-pointer group"
+      onClick={handleCardClick}
+    >
+      <CardHeader className="pb-4">
+        <div className="space-y-3">
+          {/* Header */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Avatar className="h-4 w-4">
+              <AvatarImage src={author.avatarUrl || "/placeholder.svg"} />
+              <AvatarFallback className="text-xs">
+                {author.username.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-medium">
+              {author.displayName || author.username}
+            </span>
+            <span>•</span>
+            <Badge variant="secondary" className="text-xs px-2 py-0">
+              {category.name}
+            </Badge>
+            <span>•</span>
+            <span>{timeAgo}</span>
           </div>
 
-          {/* Main content */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="secondary">{category.name}</Badge>
-              <span className="text-xs text-muted-foreground">•</span>
+          {/* Content */}
+          <div className="space-y-2">
+            <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors">
+              {title}
+            </h3>
+            <p className="text-muted-foreground text-sm line-clamp-3 leading-relaxed">
+              {content}
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-4">
+              {/* Voting */}
               <div className="flex items-center gap-1">
-                <Avatar className="h-4 w-4">
-                  <AvatarImage src={author.avatarUrl || "/placeholder.svg"} />
-                  <AvatarFallback className="text-xs">
-                    {author.username.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-xs text-muted-foreground">
-                  {author.displayName || author.username}
+                <Button
+                  variant={currentVote === 1 ? "default" : "ghost"}
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={(e) => handleVote(e, 1)}
+                  disabled={isVoting}
+                >
+                  <ArrowUp className="h-3 w-3" />
+                </Button>
+                <span className="text-sm font-medium min-w-[2rem] text-center">
+                  {formatCount(netVotes)}
+                </span>
+                <Button
+                  variant={currentVote === -1 ? "destructive" : "ghost"}
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={(e) => handleVote(e, -1)}
+                  disabled={isVoting}
+                >
+                  <ArrowDown className="h-3 w-3" />
+                </Button>
+              </div>
+
+              {/* Comments */}
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <MessageSquare className="h-4 w-4" />
+                <span className="text-sm">
+                  {formatCount(voteStats.comments)}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">•</span>
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                <span className="text-xs text-muted-foreground">{timeAgo}</span>
+
+              {/* Views */}
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <Eye className="h-4 w-4" />
+                <span className="text-sm">{formatCount(voteStats.views)}</span>
               </div>
             </div>
 
-            <Link href={`/discussion/${id}`} className="block group">
-              <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors mb-2">
-                {title}
-              </h3>
-              <p className="text-muted-foreground text-sm line-clamp-2 mb-3">
-                {content}
-              </p>
-            </Link>
-
-            {/* Stats */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" />
-                <span>{stats.comments} comments</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                <span>{stats.views} views</span>
-              </div>
-            </div>
+            {/* Share */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-muted-foreground"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigator.clipboard.writeText(
+                  `${window.location.origin}/discussion/${id}`
+                );
+              }}
+            >
+              <Share className="h-3 w-3 mr-1" />
+              <span className="text-xs">Share</span>
+            </Button>
           </div>
         </div>
       </CardHeader>
