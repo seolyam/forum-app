@@ -89,6 +89,7 @@ export function DiscussionCard({
     setIsVoting(true);
 
     try {
+      // Use the slug (id prop) to vote - the server action will handle slug-to-ID conversion
       const result = await voteOnPost(id, voteType);
 
       if (result.success) {
@@ -113,7 +114,8 @@ export function DiscussionCard({
       } else {
         error(result.error || "Failed to vote");
       }
-    } catch {
+    } catch (err) {
+      console.error("Voting error:", err);
       error("Failed to vote");
     } finally {
       setIsVoting(false);
@@ -151,95 +153,109 @@ export function DiscussionCard({
       onClick={handleCardClick}
     >
       <CardHeader className="pb-4">
-        <div className="space-y-3">
-          {/* Header */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Avatar className="h-4 w-4">
-              <AvatarImage src={author.avatarUrl || "/placeholder.svg"} />
-              <AvatarFallback className="text-xs">
-                {author.username.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <span className="font-medium">
-              {author.displayName || author.username}
-            </span>
-            <span>•</span>
-            <Badge variant="secondary" className="text-xs px-2 py-0">
-              {category.name}
-            </Badge>
-            <span>•</span>
-            <span>{timeAgo}</span>
+        <div className="flex gap-4">
+          {/* Vertical Voting */}
+          <div className="flex flex-col items-center gap-1 pt-1">
+            <Button
+              variant={currentVote === 1 ? "default" : "ghost"}
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={(e) => handleVote(e, 1)}
+              disabled={isVoting}
+            >
+              {isVoting ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <ArrowUp className="h-4 w-4" />
+              )}
+            </Button>
+            <span className="text-sm font-medium">{formatCount(netVotes)}</span>
+            <Button
+              variant={currentVote === -1 ? "destructive" : "ghost"}
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={(e) => handleVote(e, -1)}
+              disabled={isVoting}
+            >
+              {isVoting ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <ArrowDown className="h-4 w-4" />
+              )}
+            </Button>
           </div>
 
           {/* Content */}
-          <div className="space-y-2">
+          <div className="flex-1 space-y-3">
+            {/* Header */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Avatar className="h-4 w-4">
+                <AvatarImage src={author.avatarUrl || "/placeholder.svg"} />
+                <AvatarFallback className="text-xs">
+                  {author.username.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-medium">
+                {author.displayName || author.username}
+              </span>
+              <span>•</span>
+              <Badge
+                variant="secondary"
+                className="text-xs px-2 py-0 bg-primary/10 text-primary border-primary/20"
+              >
+                {category.name}
+              </Badge>
+              <span>•</span>
+              <span>{timeAgo}</span>
+            </div>
+
+            {/* Title */}
             <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors">
               {title}
             </h3>
+
+            {/* Description */}
             <p className="text-muted-foreground text-sm line-clamp-3 leading-relaxed">
               {content}
             </p>
-          </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center gap-4">
-              {/* Voting */}
-              <div className="flex items-center gap-1">
-                <Button
-                  variant={currentVote === 1 ? "default" : "ghost"}
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={(e) => handleVote(e, 1)}
-                  disabled={isVoting}
-                >
-                  <ArrowUp className="h-3 w-3" />
-                </Button>
-                <span className="text-sm font-medium min-w-[2rem] text-center">
-                  {formatCount(netVotes)}
-                </span>
-                <Button
-                  variant={currentVote === -1 ? "destructive" : "ghost"}
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={(e) => handleVote(e, -1)}
-                  disabled={isVoting}
-                >
-                  <ArrowDown className="h-3 w-3" />
-                </Button>
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center gap-4">
+                {/* Comments */}
+                <div className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+                  <MessageSquare className="h-4 w-4" />
+                  <span className="text-sm">
+                    {formatCount(voteStats.comments)} comments
+                  </span>
+                </div>
+
+                {/* Views */}
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Eye className="h-4 w-4" />
+                  <span className="text-sm">
+                    {formatCount(voteStats.views)} views
+                  </span>
+                </div>
               </div>
 
-              {/* Comments */}
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <MessageSquare className="h-4 w-4" />
-                <span className="text-sm">
-                  {formatCount(voteStats.comments)}
-                </span>
-              </div>
-
-              {/* Views */}
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Eye className="h-4 w-4" />
-                <span className="text-sm">{formatCount(voteStats.views)}</span>
-              </div>
+              {/* Share */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-muted-foreground hover:text-primary"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigator.clipboard.writeText(
+                    `${window.location.origin}/discussion/${id}`
+                  );
+                }}
+              >
+                <Share className="h-3 w-3 mr-1" />
+                <span className="text-xs">Share</span>
+              </Button>
             </div>
-
-            {/* Share */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-muted-foreground"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                navigator.clipboard.writeText(
-                  `${window.location.origin}/discussion/${id}`
-                );
-              }}
-            >
-              <Share className="h-3 w-3 mr-1" />
-              <span className="text-xs">Share</span>
-            </Button>
           </div>
         </div>
       </CardHeader>
