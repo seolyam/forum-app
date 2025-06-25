@@ -98,15 +98,15 @@ export function AskQuestionForm({ categories }: AskQuestionFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>What&apos;s your question?</CardTitle>
+        <CardTitle>Create Post</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
+            <Label htmlFor="title">Post Title *</Label>
             <Input
               id="title"
-              placeholder="What's your question? Be specific and clear..."
+              placeholder="Give your post a descriptive title..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
@@ -134,10 +134,10 @@ export function AskQuestionForm({ categories }: AskQuestionFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="content">Details *</Label>
+            <Label htmlFor="content">Content *</Label>
             <Textarea
               id="content"
-              placeholder="Provide more details about your question. What have you tried? What specific help do you need?"
+              placeholder="Share your thoughts, ask questions, or start a discussion..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={8}
@@ -154,7 +154,7 @@ export function AskQuestionForm({ categories }: AskQuestionFormProps) {
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              {isSubmitting ? "Posting..." : "Post Question"}
+              {isSubmitting ? "Publishing..." : "Post"}
             </Button>
             <Button
               type="button"

@@ -114,18 +114,6 @@ export default async function DiscussionPage({ params }: PageProps) {
             <h1 className="text-2xl font-bold leading-tight mb-4">
               {post.title}
             </h1>
-
-            {/* Post stats */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                <span>{formatCount((post.view_count || 0) + 1)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" />
-                <span>{formatCount(post.comment_count || 0)}</span>
-              </div>
-            </div>
           </CardHeader>
 
           <CardContent className="space-y-6">
@@ -136,14 +124,26 @@ export default async function DiscussionPage({ params }: PageProps) {
               </p>
             </div>
 
-            {/* Post actions */}
-            <div className="pt-4 border-t">
+            {/* Post actions and stats */}
+            <div className="flex items-center justify-between pt-4 border-t">
               <PostVoting
                 postId={post.id}
                 upvotes={post.upvotes || 0}
                 downvotes={post.downvotes || 0}
                 userVote={userVote}
               />
+
+              {/* Post stats */}
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Eye className="h-3 w-3" />
+                  <span>{formatCount((post.view_count || 0) + 1)} views</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <MessageSquare className="h-3 w-3" />
+                  <span>{formatCount(post.comment_count || 0)} comments</span>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
