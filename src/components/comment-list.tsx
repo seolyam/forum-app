@@ -214,23 +214,23 @@ export function CommentList({
 
               {/* Comment actions */}
               <div className="flex items-center gap-4 pl-9">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center border rounded-md bg-muted/30">
                   <Button
                     variant={comment.user_vote === 1 ? "default" : "ghost"}
                     size="sm"
-                    className="h-6 w-6 p-0"
+                    className="h-6 w-6 p-0 rounded-r-none border-0"
                     onClick={() => handleVote(comment.id, 1)}
                     disabled={votingStates[comment.id]}
                   >
                     <ArrowUp className="h-3 w-3" />
                   </Button>
-                  <span className="text-xs font-medium min-w-[1rem] text-center">
+                  <div className="px-2 py-1 text-xs font-medium min-w-[1rem] text-center border-x">
                     {formatCount(comment.upvotes - comment.downvotes)}
-                  </span>
+                  </div>
                   <Button
                     variant={comment.user_vote === -1 ? "destructive" : "ghost"}
                     size="sm"
-                    className="h-6 w-6 p-0"
+                    className="h-6 w-6 p-0 rounded-l-none border-0"
                     onClick={() => handleVote(comment.id, -1)}
                     disabled={votingStates[comment.id]}
                   >
@@ -290,29 +290,33 @@ export function CommentList({
                         {reply.content}
                       </p>
                       <div className="flex items-center gap-1 pl-8">
-                        <Button
-                          variant={reply.user_vote === 1 ? "default" : "ghost"}
-                          size="sm"
-                          className="h-5 w-5 p-0"
-                          onClick={() => handleVote(reply.id, 1)}
-                          disabled={votingStates[reply.id]}
-                        >
-                          <ArrowUp className="h-2 w-2" />
-                        </Button>
-                        <span className="text-xs font-medium min-w-[1rem] text-center">
-                          {formatCount(reply.upvotes - reply.downvotes)}
-                        </span>
-                        <Button
-                          variant={
-                            reply.user_vote === -1 ? "destructive" : "ghost"
-                          }
-                          size="sm"
-                          className="h-5 w-5 p-0"
-                          onClick={() => handleVote(reply.id, -1)}
-                          disabled={votingStates[reply.id]}
-                        >
-                          <ArrowDown className="h-2 w-2" />
-                        </Button>
+                        <div className="flex items-center border rounded-md bg-muted/30">
+                          <Button
+                            variant={
+                              reply.user_vote === 1 ? "default" : "ghost"
+                            }
+                            size="sm"
+                            className="h-5 w-5 p-0 rounded-r-none border-0"
+                            onClick={() => handleVote(reply.id, 1)}
+                            disabled={votingStates[reply.id]}
+                          >
+                            <ArrowUp className="h-2 w-2" />
+                          </Button>
+                          <div className="px-1 py-1 text-xs font-medium min-w-[1rem] text-center border-x">
+                            {formatCount(reply.upvotes - reply.downvotes)}
+                          </div>
+                          <Button
+                            variant={
+                              reply.user_vote === -1 ? "destructive" : "ghost"
+                            }
+                            size="sm"
+                            className="h-5 w-5 p-0 rounded-l-none border-0"
+                            onClick={() => handleVote(reply.id, -1)}
+                            disabled={votingStates[reply.id]}
+                          >
+                            <ArrowDown className="h-2 w-2" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
