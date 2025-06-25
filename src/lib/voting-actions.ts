@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function voteOnPost(postId: string, voteType: number) {
+export async function voteOnPost(postIdOrSlug: string, voteType: number) {
   const supabase = await createClient();
 
   const {
@@ -16,6 +16,25 @@ export async function voteOnPost(postId: string, voteType: number) {
   }
 
   try {
+    // First, get the actual post ID if we received a slug
+    let postId = postIdOrSlug;
+
+    // Check if this looks like a slug (contains hyphens and is longer than a typical UUID)
+    if (postIdOrSlug.includes("-") && postIdOrSlug.length > 36) {
+      const { data: post, error: postError } = await supabase
+        .from("posts")
+        .select("id")
+        .eq("slug", postIdOrSlug)
+        .single();
+
+      if (postError || !post) {
+        console.error("Post lookup error:", postError);
+        return { success: false, error: "Post not found" };
+      }
+
+      postId = post.id;
+    }
+
     // Check if user already voted
     const { data: existingVote } = await supabase
       .from("post_votes")
@@ -34,6 +53,7 @@ export async function voteOnPost(postId: string, voteType: number) {
           .eq("user_id", user.id);
 
         if (deleteError) {
+          console.error("Delete vote error:", deleteError);
           return { success: false, error: "Failed to remove vote" };
         }
       } else {
@@ -45,6 +65,7 @@ export async function voteOnPost(postId: string, voteType: number) {
           .eq("user_id", user.id);
 
         if (updateError) {
+          console.error("Update vote error:", updateError);
           return { success: false, error: "Failed to update vote" };
         }
       }
@@ -57,6 +78,7 @@ export async function voteOnPost(postId: string, voteType: number) {
       });
 
       if (insertError) {
+        console.error("Insert vote error:", insertError);
         return { success: false, error: "Failed to cast vote" };
       }
     }
