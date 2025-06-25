@@ -9,7 +9,7 @@ import { AuthProvider } from "@/components/auth-provider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "NeedToAsk - Ask Questions, Get Answers",
+  title: "NeedToKnow - Ask Questions, Get Answers",
   description:
     "A modern Q&A platform where you can ask questions, share knowledge, and connect with a community of learners and experts.",
   keywords: [
