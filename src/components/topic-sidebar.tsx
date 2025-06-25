@@ -42,7 +42,7 @@ export function TopicSidebar() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
+            <TrendingUp className="h-5 w-5 text-primary" />
             Popular Topics
           </CardTitle>
         </CardHeader>
@@ -60,7 +60,10 @@ export function TopicSidebar() {
                   {topic.name}
                 </Link>
                 {topic.trending && (
-                  <Badge variant="destructive" className="text-xs px-1 py-0">
+                  <Badge
+                    variant="destructive"
+                    className="text-xs px-1 py-0 bg-primary/20 text-primary border-primary/30"
+                  >
                     Hot
                   </Badge>
                 )}
@@ -70,7 +73,11 @@ export function TopicSidebar() {
               </span>
             </div>
           ))}
-          <Button variant="ghost" size="sm" className="w-full mt-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full mt-3 hover:text-primary"
+          >
             View All Topics
           </Button>
         </CardContent>
@@ -80,7 +87,7 @@ export function TopicSidebar() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
+            <MessageSquare className="h-5 w-5 text-primary" />
             Trending Now
           </CardTitle>
         </CardHeader>
@@ -94,7 +101,10 @@ export function TopicSidebar() {
                 {discussion.title}
               </Link>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant="outline" className="text-xs">
+                <Badge
+                  variant="outline"
+                  className="text-xs border-primary/30 text-primary"
+                >
                   {discussion.category}
                 </Badge>
                 <span>{discussion.comments} comments</span>
@@ -108,22 +118,22 @@ export function TopicSidebar() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+            <Users className="h-5 w-5 text-primary" />
             Community
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Total Members</span>
-            <span className="text-sm font-medium">45,678</span>
+            <span className="text-sm font-medium text-primary">45,678</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Online Now</span>
-            <span className="text-sm font-medium">1,234</span>
+            <span className="text-sm font-medium text-primary">1,234</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Discussions</span>
-            <span className="text-sm font-medium">23,456</span>
+            <span className="text-sm font-medium text-primary">23,456</span>
           </div>
         </CardContent>
       </Card>

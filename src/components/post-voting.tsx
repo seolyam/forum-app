@@ -85,24 +85,25 @@ export function PostVoting({
   };
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
+    <div className="flex items-center gap-4">
+      {/* Combined Voting Container */}
+      <div className="flex items-center border rounded-md bg-muted/30">
         <Button
           variant={currentVote === 1 ? "default" : "ghost"}
           size="sm"
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 rounded-r-none border-0"
           onClick={() => handleVote(1)}
           disabled={isVoting}
         >
           <ArrowUp className="h-4 w-4" />
         </Button>
-        <span className="text-sm font-medium min-w-[2rem] text-center">
+        <div className="px-3 py-1 text-sm font-medium min-w-[2rem] text-center border-x">
           {formatCount(netVotes)}
-        </span>
+        </div>
         <Button
           variant={currentVote === -1 ? "destructive" : "ghost"}
           size="sm"
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 rounded-l-none border-0"
           onClick={() => handleVote(-1)}
           disabled={isVoting}
         >
